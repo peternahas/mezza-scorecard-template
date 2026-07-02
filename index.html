@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scorecard</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1a1d23;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #b3282d; /* Mezza red — change to match your brand */
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1 {
+    font-size: 20px;
+    margin: 0 0 4px 0;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 12px 16px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    background: #fafafa;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+  }
+  tr:last-child td { border-bottom: none; }
+  #status {
+    padding: 40px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .error {
+    color: var(--accent);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+  <h1>Scorecard</h1>
+  <div class="subtitle" id="updated-at">Loading…</div>
+
+  <div id="status">Loading scorecard data…</div>
+  <div id="content" style="display:none;"></div>
+
+<script>
+  // ───────────────────────────────────────────────────────────────
+  // 1) Paste your Apps Script Web App URL here (ends in /exec)
+  // ───────────────────────────────────────────────────────────────
+  var SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+  // ───────────────────────────────────────────────────────────────
+  // 2) That's it to get data flowing. Everything below just renders
+  //    whatever tabs/columns come back as auto-built tables — one
+  //    table per sheet tab. Ask Claude to restyle this once your
+  //    data is loading, e.g. "turn the Revenue tab into a chart" or
+  //    "colour-code the Status column red/yellow/green".
+  // ───────────────────────────────────────────────────────────────
+
+  fetch(SCRIPT_URL)
+    .then(function (res) {
+      if (!res.ok) throw new Error('Network response was not OK');
+      return res.json();
+    })
+    .then(function (data) {
+      render(data);
+    })
+    .catch(function (err) {
+      document.getElementById('status').innerHTML =
+        '<span class="error">Could not load scorecard data.</span><br>' +
+        'Check that SCRIPT_URL is set correctly and the Apps Script deployment access is "Anyone".<br>' +
+        '<small>' + err.message + '</small>';
+    });
+
+  function render(data) {
+    var content = document.getElementById('content');
+    var tabNames = Object.keys(data);
+
+    if (tabNames.length === 0) {
+      document.getElementById('status').textContent = 'No data found. Check your Google Sheet has at least one tab with headers + rows.';
+      return;
+    }
+
+    tabNames.forEach(function (tabName) {
+      var rows = data[tabName];
+      if (!rows || rows.length === 0) return;
+
+      var headers = Object.keys(rows[0]);
+
+      var card = document.createElement('div');
+      card.className = 'card';
+
+      var header = document.createElement('div');
+      header.className = 'card-header';
+      header.textContent = tabName;
+      card.appendChild(header);
+
+      var table = document.createElement('table');
+      var thead = document.createElement('thead');
+      var headRow = document.createElement('tr');
+      headers.forEach(function (h) {
+        var th = document.createElement('th');
+        th.textContent = h;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+      rows.forEach(function (row) {
+        var tr = document.createElement('tr');
+        headers.forEach(function (h) {
+          var td = document.createElement('td');
+          td.textContent = row[h];
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+
+      card.appendChild(table);
+      content.appendChild(card);
+    });
+
+    document.getElementById('status').style.display = 'none';
+    content.style.display = 'block';
+    document.getElementById('updated-at').textContent =
+      'Loaded ' + new Date().toLocaleString();
+  }
+</script>
+
+</body>
+</html>
